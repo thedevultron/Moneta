@@ -1,0 +1,15 @@
+{
+  "hosting": [
+    {
+      "site": "moneta-live",
+      "source": "."
+    },
+    {
+      "site": "moneta-ai-app",
+      "source": "."
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

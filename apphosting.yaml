@@ -1,0 +1,35 @@
+# Firebase App Hosting runtime config for Moneta.
+# Deploy with: firebase login -> firebase use --add -> firebase deploy
+#
+# 1. Create each secret ONCE (paste values when prompted):
+#   firebase apphosting:secrets:set GEMINI_API_KEY
+#   firebase apphosting:secrets:set FIREBASE_PROJECT_ID
+#   firebase apphosting:secrets:set FIREBASE_CLIENT_EMAIL
+#   firebase apphosting:secrets:set FIREBASE_PRIVATE_KEY
+#   (Get the FIREBASE_* values from Firebase console -> Project Settings ->
+#   Service accounts -> Generate new private key. Get GEMINI_API_KEY from
+#   https://aistudio.google.com/apikey)
+# 2. Grant access: firebase apphosting:secrets:grantAccess --backend <backend-id>
+# 3. firebase deploy
+#
+# NOTE: data/backend.json is gitignored, so production always uses DB_BACKEND
+# below (firestore). Localhost keeps using whatever data/backend.json says.
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+env:
+  - variable: NODE_ENV
+    value: production
+  - variable: DB_BACKEND
+    value: firestore
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+  - variable: FIREBASE_PROJECT_ID
+    secret: FIREBASE_PROJECT_ID
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_CLIENT_EMAIL
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_PRIVATE_KEY

@@ -1,0 +1,33 @@
+node_modules/
+.next/
+out/
+data/*.json
+!.gitkeep
+.env
+*.log
+service-account.json
+
+# Build/deploy artifacts and caches
+.firebase/
+.netlify/
+
+# Environment files (keep the example template)
+.env.local
+.env.*
+!.env.example
+
+# Logs
+emulator.log
+firebase-debug.log
+firestore-debug.log
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Runtime data artifacts (JSON DB temp files and upload storage; data/*.json + !.gitkeep cover the rest)
+data/*.tmp
+data/uploads/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

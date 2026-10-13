@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MONETA — Build Quest | Iad-lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#222222; --bone:#f8f8f8; --graphite:#2a2b2d; --ash:#757577;
+  --font-ui:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --font-display:'Archivo Black','Arial Black',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;background:#222222}
+body{background:var(--canvas);color:var(--bone);font-family:var(--font-ui);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:#f8f8f8;color:#222}
+a{color:inherit}
+
+/* preloader — minimal */
+#preloader{position:fixed;inset:0;background:#222;z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity .6s}
+#preloader.done{opacity:0;pointer-events:none}
+#preloader .n{font-family:var(--font-display);font-size:72px;line-height:1}
+#preloader .bar{width:160px;height:1px;background:#444;position:relative}
+#preloader .bar i{position:absolute;left:0;top:0;height:100%;background:#f8f8f8;width:0%}
+#preloader small{font-size:12px;letter-spacing:.25em;color:var(--ash)}
+
+/* fixed chrome — only essentials */
+.meta{position:fixed;top:16px;left:16px;z-index:50;font-size:16px;line-height:1.3;pointer-events:none;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.top-progress{position:fixed;top:0;left:0;height:2px;background:#f8f8f8;width:0%;z-index:51}
+.dots{position:fixed;right:24px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:12px}
+.dots a{width:9px;height:9px;border-radius:50%;border:1px solid #f8f8f8;display:block;transition:.3s}
+.dots a.active{background:#f8f8f8}
+.hud{position:fixed;left:16px;bottom:16px;z-index:50;border:1px solid #f8f8f8;border-radius:20px;padding:9px 16px;background:rgba(34,34,34,.8);font-size:12px;letter-spacing:.1em;display:flex;gap:10px;align-items:center}
+.hud .track{width:90px;height:4px;border:1px solid #666;border-radius:20px;overflow:hidden}
+.hud .fill{height:100%;background:#f8f8f8;width:0%;transition:width .6s}
+
+/* hero */
+.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:flex-end;padding-top:80px}
+.kicker{display:flex;justify-content:space-between;padding:0 24px;font-size:12px;letter-spacing:.25em;color:var(--bone);opacity:.9}
+.word{font-family:var(--font-display);line-height:.85;white-space:nowrap;text-align:center;width:120vw;margin-left:-10vw;font-size:clamp(90px,22vw,320px)}
+.hero-sub{display:grid;grid-template-columns:1fr auto;gap:24px;padding:28px 24px;border-top:1px solid #f8f8f8;margin-top:12px;align-items:center}
+@media(max-width:700px){.hero-sub{grid-template-columns:1fr}}
+.hero-sub p{font-size:18px;line-height:1.35;max-width:520px}
+.btn{border:1px solid #f8f8f8;border-radius:20px;background:transparent;color:#f8f8f8;padding:13px 26px;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-ui)}
+.btn:hover{background:#f8f8f8;color:#222}
+.btn.solid{background:#f8f8f8;color:#222}
+.btn.solid:hover{background:transparent;color:#f8f8f8}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* quiet */
+.quiet{padding:96px 24px;max-width:760px}
+.quiet .tag{font-size:12px;letter-spacing:.3em;color:var(--ash);margin-bottom:16px}
+.quiet h2{font-size:36px;line-height:1.1;font-weight:400;margin-bottom:16px}
+.quiet p{font-size:18px;line-height:1.35;color:#e6e6e6;margin-bottom:10px}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* photo */
+.photo{height:78vh;min-height:480px;width:100vw;overflow:hidden;position:relative}
+.photo img{width:100%;height:118%;object-fit:cover;display:block}
+.photo span{position:absolute;bottom:16px;left:20px;font-size:11px;letter-spacing:.2em;background:rgba(0,0,0,.45);border:1px solid #f8f8f8;border-radius:20px;padding:5px 14px}
+
+/* mission */
+.act{padding:30px 24px 70px}
+.card{border:1px solid #f8f8f8;border-radius:20px;overflow:hidden;max-width:980px}
+.card-head{padding:26px;display:flex;gap:18px;align-items:center;border-bottom:1px solid #f8f8f8;flex-wrap:wrap}
+.num{width:60px;height:60px;border-radius:20px;background:#f8f8f8;color:#222;display:grid;place-items:center;font-family:var(--font-display);font-size:24px;flex-shrink:0}
+.card-head h3{font-size:27px;font-weight:400;line-height:1.25}
+.card-head .sub{font-size:12px;letter-spacing:.15em;color:#bbb;margin-top:4px}
+.card-body{display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:860px){.card-body{grid-template-columns:1fr}}
+.left{padding:26px;border-right:1px solid #f8f8f8}
+@media(max-width:860px){.left{border-right:none;border-bottom:1px solid #f8f8f8}}
+.right{padding:26px;background:rgba(0,0,0,.2)}
+ul.check{list-style:none}
+ul.check li{display:flex;gap:12px;padding:15px 0;border-bottom:1px solid #f8f8f8;font-size:17px;line-height:1.4;cursor:pointer}
+ul.check li:last-child{border-bottom:none}
+.box{width:22px;height:22px;border:1px solid #f8f8f8;border-radius:7px;flex-shrink:0;display:grid;place-items:center;font-size:13px;margin-top:2px}
+li.done .box{background:#f8f8f8;color:#222}
+li.done .t{opacity:.45;text-decoration:line-through}
+li .t small{display:block;font-size:12px;color:#999;margin-top:3px}
+.sim{border:1px solid #3a3a3a;border-radius:15px;background:#161616;padding:18px;margin-top:6px}
+.sim h4{font-size:11px;letter-spacing:.25em;color:var(--ash);margin-bottom:12px;font-weight:400}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7;background:#0b0b0b;border:1px solid #2a2b2d;border-radius:12px;padding:14px;overflow-x:auto;white-space:pre}
+.term{background:#050505;border:1px solid #2a2b2d;border-radius:12px;padding:14px;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.8;min-height:150px;margin-top:12px}
+.term .line{animation:fin .3s forwards}
+@keyframes fin{from{opacity:0}to{opacity:1}}
+.pbar{display:flex;align-items:center;gap:10px;background:#0e0e0e;border:1px solid #333;border-radius:20px;padding:8px 8px 8px 16px;margin-top:4px}
+.pbar input{flex:1;background:transparent;border:none;outline:none;color:#f8f8f8;font-size:14px;font-family:var(--font-ui);min-width:0}
+.iconbtn{width:36px;height:36px;border-radius:50%;border:1px solid #f8f8f8;background:transparent;color:#f8f8f8;cursor:pointer;flex-shrink:0}
+.iconbtn:hover{background:#f8f8f8;color:#222}
+.iconbtn.go{background:#f8f8f8;color:#111}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.thumb{border:1px solid #333;border-radius:12px;overflow:hidden;cursor:pointer;transition:.2s;background:#222}
+.thumb img{width:100%;height:96px;object-fit:cover;display:block}
+.thumb span{display:block;padding:8px;font-size:10px;letter-spacing:.08em;color:#aaa}
+.thumb:hover{border-color:#f8f8f8}
+.thumb.picked{border-color:#f8f8f8;box-shadow:0 0 0 2px #f8f8f8}
+
+/* finale */
+.finale{padding:110px 24px;text-align:center;max-width:720px;margin:0 auto}
+.finale h2{font-family:var(--font-display);font-size:clamp(44px,8vw,96px);line-height:.9;margin:12px 0}
+.score{display:flex;gap:12px;justify-content:center;margin:24px 0;flex-wrap:wrap}
+.score div{border:1px solid #f8f8f8;border-radius:20px;padding:14px 26px;min-width:130px}
+.score b{font-family:var(--font-display);font-size:32px;display:block}
+.score small{font-size:10px;letter-spacing:.25em;color:#888}
+footer{border-top:1px solid #f8f8f8;padding:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:11px;letter-spacing:.18em;color:var(--ash)}
+#toasts{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{border:1px solid #f8f8f8;background:#111;border-radius:20px;padding:10px 20px;font-size:12px;letter-spacing:.08em;animation:tin .3s ease;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+@keyframes tin{from{transform:translateY(12px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="preloader"><div class="n" id="preN">00</div><div class="bar"><i id="preF"></i></div><small>MONETA — LOADING</small></div>
+
+<div class="top-progress" id="topProgress"></div>
+<div class="meta">Interaction<br>Design<br>Lab<br><b>Bern — 25</b></div>
+<nav class="dots"><a href="#act1" data-sec="act1" title="Act I"></a><a href="#act2" data-sec="act2" title="Act II"></a><a href="#act3" data-sec="act3" title="Act III"></a></nav>
+<div class="hud"><span id="xpText">0 XP</span><div class="track"><div class="fill" id="xpFill"></div></div><span id="rankText" style="color:#999">EXTRA</span></div>
+<div id="toasts"></div>
+
+<header class="hero">
+  <div class="kicker"><span>MONETA — BUILD QUEST</span><span>3 STEPS · 1 SHIP</span></div>
+  <div class="word">IMAGINE</div>
+  <div class="hero-sub">
+    <p class="reveal">Three steps. Three tools. One shipped app — <b>Moneta</b>. Follow the wall from top to bottom, tick each step, and deploy.</p>
+    <div><a class="btn solid" href="#act1">Start — Step 1 ↓</a></div>
+  </div>
+</header>
+
+<section class="quiet reveal">
+  <div class="tag">HOW IT WORKS</div>
+  <h2>Quiet canvas. Loud photography. Small checklist.</h2>
+  <p>Click each checklist item as you do it for real. Each tick earns XP. Finish all three steps to ship.</p>
+</section>
+
+<div class="photo"><img src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?q=80&w=2000&auto=format&fit=crop" alt=""><span>STEP 01 — REFERO STYLES</span></div>
+
+<!-- STEP 1 -->
+<section class="act" id="act1">
+  <div class="quiet reveal" style="padding:40px 0 24px"><div class="tag">STEP 1 — REFERO STYLES</div><h2>Steal the <b>theme.</b></h2><p>Go to Refero Styles, pick a site you love, open it, copy its design theme.</p></div>
+  <div class="card reveal">
+    <div class="card-head"><div class="num">01</div><div><h3>Refero Styles — copy the theme</h3><div class="sub">REFERO.STYLES → PICK → OPEN → COPY</div></div></div>
+    <div class="card-body">
+      <div class="left">
+        <ul class="check" data-list>
+          <li><span class="box"></span><span class="t">Open <b>Refero Styles</b><small>browse the gallery wall</small></span></li>
+          <li><span class="box"></span><span class="t">Select one <b>aesthetically pleasing website</b><small>trust your gut</small></span></li>
+          <li><span class="box"></span><span class="t"><b>Click into it</b><small>study type, color, spacing</small></span></li>
+          <li><span class="box"></span><span class="t"><b>Copy its design theme</b><small>colors · fonts · radius</small></span></li>
+        </ul>
+      </div>
+      <div class="right">
+        <div class="sim">
+          <h4>PICK ONE — THEN COPY</h4>
+          <div class="thumbs" id="thumbs">
+            <div class="thumb" data-name="Iad-lab Charcoal"><img src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?q=80&w=600&auto=format&fit=crop" alt=""><span>IAD-LAB</span></div>
+            <div class="thumb" data-name="Amber Fold"><img src="https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?q=80&w=600&auto=format&fit=crop" alt=""><span>AMBER</span></div>
+            <div class="thumb" data-name="Red Monolith"><img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop" alt=""><span>MONOLITH</span></div>
+          </div>
+          <div class="code" id="themeCode">--canvas: #222222;  --bone: #f8f8f8;
+--graphite: #2a2b2d;  --ash: #757577;
+--font: Inter;  --radius: 20px;
+--border: 1px solid #f8f8f8;</div>
+          <div class="row"><button class="btn solid" id="copyTheme">Copy theme</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="photo"><img src="https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?q=80&w=2000&auto=format&fit=crop" alt=""><span>STEP 02 — ARENA.AI</span></div>
+
+<!-- STEP 2 -->
+<section class="act" id="act2">
+  <div class="quiet reveal" style="padding:40px 0 24px"><div class="tag">STEP 2 — ARENA.AI</div><h2>Generate the <b>app.</b></h2><p>Go to arena.ai, choose Fullstack App, fill in the details, hit the pencil edit (top-right of the prompt bar), paste the theme, press Enter. Review, then download.</p></div>
+  <div class="card reveal">
+    <div class="card-head"><div class="num">02</div><div><h3>arena.ai — paste &amp; generate</h3><div class="sub">ARENA.AI → FULLSTACK → PENCIL → PASTE → ENTER → DOWNLOAD</div></div></div>
+    <div class="card-body">
+      <div class="left">
+        <ul class="check" data-list>
+          <li><span class="box"></span><span class="t">Go to <b>arena.ai</b> → <b>Fullstack App</b><small>select the fullstack option</small></span></li>
+          <li><span class="box"></span><span class="t">Fill in the details <b>(Moneta)</b><small>name, purpose, vibe</small></span></li>
+          <li><span class="box"></span><span class="t">Click the <b>pencil edit</b> top-right of prompt bar<small>then paste the Refero theme</small></span></li>
+          <li><span class="box"></span><span class="t">Press <b>Enter</b>, then <b>review &amp; download</b><small>check it, export the zip</small></span></li>
+        </ul>
+      </div>
+      <div class="right">
+        <div class="sim">
+          <h4>REHEARSE THE PROMPT BAR</h4>
+          <div class="pbar"><input id="arenaInput" value="A charcoal money-diary called Moneta, quiet gallery style…"><button class="iconbtn" id="pencilBtn" title="pencil edit">✎</button><button class="iconbtn go" id="enterBtn" title="enter">⏎</button></div>
+          <div class="term" id="arenaTerm"><div style="color:#666">Click ✎ to inject theme, then ⏎ to generate.</div></div>
+          <div class="row"><button class="btn solid" id="dlBtn" disabled>Download</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="photo"><img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2000&auto=format&fit=crop" alt=""><span>STEP 03 — OPENCODE + FIREBASE</span></div>
+
+<!-- STEP 3 -->
+<section class="act" id="act3">
+  <div class="quiet reveal" style="padding:40px 0 24px"><div class="tag">STEP 3 — OPENCODE</div><h2>Fix it. <b>Ship it.</b></h2><p>Open OpenCode, select Muse Spark 1.3 xhigh, ask it to fix all problems, then ask it to deploy to Firebase. Done.</p></div>
+  <div class="card reveal">
+    <div class="card-head"><div class="num">03</div><div><h3>OpenCode — fix &amp; deploy</h3><div class="sub">OPENCODE → MUSE SPARK 1.3 XHIGH → FIX → FIREBASE</div></div></div>
+    <div class="card-body">
+      <div class="left">
+        <ul class="check" data-list>
+          <li><span class="box"></span><span class="t">Open <b>OpenCode</b> with the downloaded project</span></li>
+          <li><span class="box"></span><span class="t">Select <b>Muse Spark 1.3 · xhigh</b></span></li>
+          <li><span class="box"></span><span class="t">Ask: <b>“fix all the problems”</b></span></li>
+          <li><span class="box"></span><span class="t">Ask: <b>“deploy to Firebase”</b> — done</span></li>
+        </ul>
+      </div>
+      <div class="right">
+        <div class="sim">
+          <h4>REHEARSE THE COMMANDS</h4>
+          <div class="row" style="margin-top:0"><button class="btn" data-cmd="fix">fix all the problems</button><button class="btn solid" data-cmd="deploy">deploy to firebase</button></div>
+          <div class="term" id="ocTerm"><div style="color:#666">muse-spark-1.3 · xhigh — ready.</div></div>
+          <div class="code" style="margin-top:12px">> fix all the problems occured
+> deploy to firebase
+  live → moneta-live.web.app</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div style="overflow:hidden;padding:50px 0 0"><div class="word" style="font-size:clamp(70px,17vw,240px)">PROGRAM</div></div>
+
+<section class="finale" id="finale">
+  <div class="tag reveal" style="font-size:12px;letter-spacing:.3em;color:var(--ash)">FINISH</div>
+  <h2 class="reveal">You shipped it.</h2>
+  <p class="reveal" style="color:#aaa">Refero gave taste. arena.ai gave mass. OpenCode gave flight. Firebase gave an address.</p>
+  <div class="score reveal"><div><b id="finalXP">0</b><small>XP</small></div><div><b id="finalPct">0%</b><small>DONE</small></div><div><b id="finalRank" style="font-size:22px;padding-top:6px">EXTRA</b><small>RANK</small></div></div>
+  <div class="row reveal" style="justify-content:center"><button class="btn solid" id="recapBtn">Copy recap</button><button class="btn" id="topBtn">Back to top ↑</button></div>
+</section>
+
+<footer><span>IAD-LAB — MONETA QUEST</span><span>ARENA.AI → OPENCODE → FIREBASE</span></footer>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+/* preloader */
+let p=0; const piv=setInterval(()=>{p=Math.min(100,p+22);$('#preN').textContent=String(Math.floor(p)).padStart(2,'0');$('#preF').style.width=p+'%';if(p>=100){clearInterval(piv);setTimeout(()=>$('#preloader').classList.add('done'),250)}},120);
+/* toast + xp */
+let xp=0; const ranks=[[0,'EXTRA'],[150,'PLAYER'],[500,'DIRECTOR'],[1000,'LEGEND']];
+function rank(){let r='EXTRA';for(const[t,n]of ranks)if(xp>=t)r=n;return r}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toasts').appendChild(t);setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400)},2200)}
+function addXP(n,msg){xp=Math.min(1200,xp+n);$('#xpFill').style.width=(xp/1200*100)+'%';$('#xpText').textContent=xp+' XP';$('#rankText').textContent=rank();$('#finalXP').textContent=xp;$('#finalPct').textContent=Math.round(xp/1000*100)+'%';$('#finalRank').textContent=rank();if(msg)toast(msg)}
+/* reveals */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+/* scroll: progress + parallax + dots */
+const photos=$$('.photo img');
+function onScroll(){const h=document.body.scrollHeight-innerHeight;$('#topProgress').style.width=(h>0?scrollY/h*100:0)+'%';
+photos.forEach(img=>{const r=img.parentElement.getBoundingClientRect();const pr=(r.top+r.height/2-innerHeight/2)/innerHeight;img.style.transform='translateY('+(pr*-40)+'px)'});
+let cur='';['act1','act2','act3'].forEach(id=>{const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<innerHeight*.5)cur=id});
+$$('.dots a').forEach(a=>a.classList.toggle('active',a.dataset.sec===cur))}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+/* checklists */
+$$('[data-list]').forEach(list=>{list.querySelectorAll('li').forEach(li=>li.addEventListener('click',()=>{const on=li.classList.toggle('done');li.querySelector('.box').textContent=on?'✔':'';if(on)addXP(40,'+40 XP') ;}))});
+/* step1 */
+$$('#thumbs .thumb').forEach(th=>th.addEventListener('click',()=>{$$('#thumbs .thumb').forEach(x=>x.classList.remove('picked'));th.classList.add('picked');addXP(40,'Theme picked — '+th.dataset.name)}));
+$('#copyTheme').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('#themeCode').innerText);toast('Theme copied — paste it in arena.ai')}catch(e){toast('Select the theme + Ctrl+C')}addXP(30,'+30 XP')});
+/* step2 arena.ai */
+const at=$('#arenaTerm'); let staged=false;
+function line(h){const d=document.createElement('div');d.className='line';d.innerHTML=h;at.appendChild(d)}
+$('#pencilBtn').addEventListener('click',()=>{$('#arenaInput').value+=' [theme: #222222 / #f8f8f8 / Inter / 20px / hairlines]';line('<span style="color:#888">✎ theme pasted into prompt.</span>');addXP(20,'+20 XP — pencil used')});
+$('#enterBtn').addEventListener('click',()=>{if(staged)return;staged=true;line('⏎ generating Moneta…');['scaffolding fullstack…','painting charcoal canvas…','wiring ledger…'].forEach((s,i)=>setTimeout(()=>line('· '+s),350*(i+1)));setTimeout(()=>{line('✔ preview ready — review, then Download.');$('#dlBtn').disabled=false;addXP(80,'+80 XP — app generated')},1400)});
+$('#dlBtn').addEventListener('click',()=>{if($('#dlBtn').disabled)return;line('⬇ moneta-arena-ai.zip saved.');addXP(50,'+50 XP — downloaded')});
+/* step3 */
+const oc=$('#ocTerm');
+function oline(h){const d=document.createElement('div');d.className='line';d.innerHTML=h;oc.appendChild(d)}
+$$('[data-cmd]').forEach(b=>b.addEventListener('click',()=>{const c=b.dataset.cmd;
+if(c==='fix'){oline('> fix all the problems occured');setTimeout(()=>{oline('✔ clean — 0 problems.');addXP(80,'+80 XP — fixed')},800)}
+if(c==='deploy'){oline('> deploy to firebase');setTimeout(()=>{oline('● live → moneta-live.web.app');addXP(120,'+120 XP — deployed')},900)}}));
+/* finale */
+$('#recapBtn').addEventListener('click',async()=>{const t='MONETA — 1) Refero Styles: pick site, open, copy theme. 2) arena.ai: Fullstack App > details > pencil edit top-right > paste theme > Enter > review > download. 3) OpenCode muse-spark-1.3 xhigh: "fix all the problems" > "deploy to Firebase". XP:'+xp+' Rank:'+rank();try{await navigator.clipboard.writeText(t);toast('Recap copied')}catch(e){toast('Recap ready')} });
+$('#topBtn').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+addXP(0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "opencut-api": {
+      "type": "local",
+      "command": [
+        "moon",
+        "run",
+        "api:dev"
+      ],
+      "cwd": "C:/Users/Amir/opencut",
+      "enabled": true
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "shadcn-ui-mcp-server"
+      ],
+      "enabled": true
+    },
+    "21st-dev": {
+      "type": "remote",
+      "url": "https://21st.dev",
+      "headers": {
+        "x-api-key": "21st_sk_••••••••••••c88e"
+      },
+      "enabled": true
+    },
+    "react-bits": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "reactbits-dev-mcp-server"
+      ],
+      "enabled": true
+    },
+    "refero-styles": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "ref-tools-mcp@latest"
+      ],
+      "enabled": true
+    },
+    "diffusion-studio": {
+      "type": "remote",
+      "url": "http://127.0.0",
+      "enabled": true
+    },
+    "genoffice": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\Amir\\AppData\\Local\\Programs\\GenOffice\\resources\\cli\\..\\..\\GenOffice.exe",
+        "C:\\Users\\Amir\\AppData\\Local\\Programs\\GenOffice\\resources\\cli\\genoffice.cjs",
+        "mcp"
+      ],
+      "environment": {
+        "ELECTRON_RUN_AS_NODE": "1"
+      },
+      "enabled": true
+    },
+    "genoffice-editor": {
+      "type": "remote",
+      "url": "http://127.0.0.1:3093/mcp",
+      "enabled": true
+    }
+  },
+  "command": {
+    "goal": {
+      "description": "Set an autonomous multi-turn objective handled by the master orchestrator.",
+      "template": "Initialize an autonomous execution loop. Your final objective is: $ARGUMENTS. Create a sequential step-by-step checklist, spawn the necessary subagents (like coder, tester, or debug) to complete each task, and iterate until the exit criteria are verified.",
+      "agent": "orchestrator",
+      "model": "opencode/fledge-alpha-free"
+    }
+  },
+  "provider": {}
+}
