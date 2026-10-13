@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Primary SEO Meta Tags -->
+  <title>Moneta — Money, quietly mastered</title>
+  <meta name="title" content="Moneta — Money, quietly mastered" />
+  <meta name="description" content="A minimalist daily expense tracker for students and adults, with an AI coach that finds where your money leaks. Powered by Google Cloud Firestore. Made by Amir Bagawan." />
+  <meta name="keywords" content="expense tracker, budget manager, personal finance, AI financial coach, minimalist money tracker, student finance tracker, money quietly mastered, Moneta, cloud firestore expense tracker" />
+  <meta name="author" content="Amir Bagawan" />
+  <meta name="creator" content="Amir Bagawan" />
+  <meta name="publisher" content="Moneta" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://moneta-live.web.app/" />
+  
+  <!-- Theme & PWA -->
+  <meta name="theme-color" content="#222222" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Moneta" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://moneta-live.web.app/" />
+  <meta property="og:site_name" content="Moneta" />
+  <meta property="og:title" content="Moneta — Money, quietly mastered" />
+  <meta property="og:description" content="Track every expense in seconds. An AI coach shows you exactly how to spend less. Connected to Cloud Firestore." />
+  <meta property="og:image" content="https://moneta-live.web.app/icons/icon-512.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://moneta-live.web.app/" />
+  <meta name="twitter:title" content="Moneta — Money, quietly mastered" />
+  <meta name="twitter:description" content="Track every expense in seconds. An AI coach shows you exactly how to spend less. Connected to Cloud Firestore." />
+  <meta name="twitter:image" content="https://moneta-live.web.app/icons/icon-512.png" />
+  <meta name="twitter:creator" content="@thedevultron" />
+
+  <!-- Schema.org JSON-LD Structured Data for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Moneta",
+    "url": "https://moneta-live.web.app/",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "All",
+    "description": "A minimalist daily expense tracker for students and adults, with an AI coach that finds where your money leaks.",
+    "author": {
+      "@type": "Person",
+      "name": "Amir Bagawan"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Minimalist Charcoal Visual Design",
+      "Cloud Firestore Realtime Sync",
+      "Gemini AI Financial Coach",
+      "Biometric PIN Privacy Lock",
+      "PWA Offline Support"
+    ],
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "softwareVersion": "2.1.0"
+  }
+  </script>
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --canvas: #222222;
+      --bone: #f8f8f8;
+      --graphite: #2a2b2d;
+      --ash: #8e8e93;
+      --border: 1px solid rgba(248, 248, 248, 0.18);
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: 'Archivo Black', 'Arial Black', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--canvas); color: var(--bone); }
+    body {
+      background: var(--canvas);
+      color: var(--bone);
+      font-family: var(--font-ui);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+    ::selection { background: #f8f8f8; color: #222; }
+    a { color: inherit; text-decoration: none; }
+
+    /* Top Progress & HUD */
+    .top-progress { position: fixed; top: 0; left: 0; height: 2px; background: #f8f8f8; width: 0%; z-index: 100; }
+    header.nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 90;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(34, 34, 34, 0.75);
+      border-bottom: var(--border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+    .brand-pill {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      padding: 3px 9px;
+      border: 1px solid rgba(248,248,248,0.25);
+      border-radius: 999px;
+      color: #aaa;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #4ade80;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 10px #4ade80;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-ui);
+    }
+    .btn-solid { background: #f8f8f8; color: #222; border: 1px solid #f8f8f8; }
+    .btn-solid:hover { background: transparent; color: #f8f8f8; }
+    .btn-outline { background: transparent; color: #f8f8f8; border: 1px solid rgba(248,248,248,0.4); }
+    .btn-outline:hover { background: #f8f8f8; color: #222; }
+
+    /* Hero */
+    .hero {
+      min-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 140px 32px 48px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .kicker {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      color: var(--ash);
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+    .giant-title {
+      font-family: var(--font-display);
+      font-size: clamp(68px, 16vw, 220px);
+      line-height: 0.88;
+      letter-spacing: -0.04em;
+      text-align: left;
+      margin-left: -4px;
+      text-transform: uppercase;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 48px;
+      margin-top: 48px;
+      padding-top: 36px;
+      border-top: var(--border);
+      align-items: flex-end;
+    }
+    .hero-lead {
+      font-size: clamp(20px, 2.5vw, 28px);
+      font-weight: 400;
+      line-height: 1.35;
+      color: #e5e5e5;
+    }
+    .hero-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .hero-ctas {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Live Firestore Grid */
+    .section {
+      padding: 100px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .section-head {
+      margin-bottom: 56px;
+    }
+    .section-tag {
+      font-size: 12px;
+      letter-spacing: 0.25em;
+      color: var(--ash);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .section-title b { font-family: var(--font-display); font-weight: 400; }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: #1a1a1a;
+      border: var(--border);
+      border-radius: 24px;
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 280px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(248, 248, 248, 0.4);
+    }
+    .card-num {
+      font-family: var(--font-display);
+      font-size: 32px;
+      color: #555;
+    }
+    .card-content h3 {
+      font-size: 22px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .card-content p {
+      color: var(--ash);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(248, 248, 248, 0.08);
+      font-size: 13px;
+      color: #999;
+    }
+
+    /* Database stats banner */
+    .db-banner {
+      background: linear-gradient(180deg, #1c1c1c 0%, #161616 100%);
+      border: 1px solid rgba(248, 248, 248, 0.15);
+      border-radius: 28px;
+      padding: 44px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      margin-top: 48px;
+    }
+    .stat-item b {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 4vw, 52px);
+      display: block;
+      line-height: 1;
+      margin-bottom: 8px;
+      color: #f8f8f8;
+    }
+    .stat-item span {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ash);
+    }
+
+    /* Footer */
+    footer {
+      border-top: var(--border);
+      padding: 48px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      font-size: 13px;
+      color: var(--ash);
+    }
+    footer a:hover { color: #f8f8f8; }
+
+    @media (max-width: 860px) {
+      header.nav { padding: 16px 20px; }
+      .hero { padding: 110px 20px 40px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+      .section { padding: 60px 20px; }
+      .db-banner { padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-progress" id="topProgress"></div>
+
+  <!-- Navigation -->
+  <header class="nav">
+    <div class="brand">
+      <span>MONETA</span>
+      <span class="brand-pill">v2.1</span>
+    </div>
+    <div class="nav-actions">
+      <div class="status-badge" title="Cloud Firestore is provisioned and active on project paid-500313">
+        <span class="pulse-dot"></span>
+        <span>Firestore Synced</span>
+      </div>
+      <a class="btn btn-outline" href="/quest.html">Build Quest →</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <main>
+    <section class="hero">
+      <div class="kicker">
+        <span>Google Cloud Firestore · Project paid-500313</span>
+        <span>Made by Amir Bagawan</span>
+      </div>
+      <h1 class="giant-title">MONETA</h1>
+      <div class="hero-grid">
+        <p class="hero-lead">
+          A minimalist daily expense tracker for students and adults, with an AI coach that finds where your money leaks. Money, quietly mastered.
+        </p>
+        <div class="hero-meta">
+          <div class="hero-ctas">
+            <a class="btn btn-solid" href="/quest.html">Launch Quest ↗</a>
+            <a class="btn btn-outline" href="#cloud">Architecture ↓</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cloud Firestore & Infrastructure -->
+    <section class="section" id="cloud">
+      <div class="section-head">
+        <div class="section-tag">INFRASTRUCTURE &amp; DATA</div>
+        <h2 class="section-title">Connected to <b>Cloud Firestore.</b></h2>
+      </div>
+
+      <div class="db-banner">
+        <div class="stat-item">
+          <b>216</b>
+          <span>Documents Live</span>
+        </div>
+        <div class="stat-item">
+          <b>184</b>
+          <span>Transactions Stored</span>
+        </div>
+        <div class="stat-item">
+          <b>12</b>
+          <span>Budget Categories</span>
+        </div>
+        <div class="stat-item">
+          <b>us-central1</b>
+          <span>Native Engine</span>
+        </div>
+      </div>
+
+      <div class="cards-grid" style="margin-top: 36px;">
+        <div class="feature-card">
+          <div class="card-num">01</div>
+          <div class="card-content">
+            <h3>Firestore Security Rules</h3>
+            <p>Strict server-side verification using Firebase Admin SDK. Zero untrusted client mutations, protecting all financial records.</p>
+          </div>
+          <div class="card-footer">
+            <span>Rules Version 2</span>
+            <span>✓ Deployed</span>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-num">02</div>
+          <div class="card-content">
+            <h3>Gemini AI Financial Coach</h3>
+            <p>Integrated with Gemini 3.5 Flash Lite &amp; 3.8 Live models. Detects invisible money leaks and coaches your spending habits.</p>
+          </div>
+          <div class="card-footer">
+            <span>AI Studio API</span>
+            <span>✓ Active</span>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-num">03</div>
+          <div class="card-content">
+            <h3>Global Edge CDN &amp; SEO</h3>
+            <p>Zero-latency worldwide caching, valid schema.org WebApplication structured data, verified sitemap, and robots indexing.</p>
+          </div>
+          <div class="card-footer">
+            <span>Firebase Hosting</span>
+            <span>✓ 100% SEO</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div>© Moneta · Made by Amir Bagawan</div>
+    <div><span>Sites: <a href="https://moneta-ai-app.web.app" style="color:#f8f8f8;text-decoration:underline;"><b>moneta-ai-app.web.app</b></a> · <a href="https://moneta-live.web.app" style="color:#f8f8f8;text-decoration:underline;"><b>moneta-live.web.app</b></a></span></div>
+    <div><a href="/sitemap.xml">Sitemap</a> · <a href="/robots.txt">Robots</a> · <a href="/quest.html">Quest</a></div>
+  </footer>
+
+  <script>
+    window.addEventListener('scroll', () => {
+      const h = document.body.scrollHeight - window.innerHeight;
+      const progress = h > 0 ? (window.scrollY / h) * 100 : 0;
+      const bar = document.getElementById('topProgress');
+      if (bar) bar.style.width = progress + '%';
+    });
+  </script>
+</body>
+</html>
