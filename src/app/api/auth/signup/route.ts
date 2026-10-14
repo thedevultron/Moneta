@@ -28,10 +28,16 @@ export async function POST(req: Request) {
   if (isSupabaseConfigured()) {
     try {
       const supabase = createClient(await cookies());
+      const origin = new URL(req.url).origin;
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: {
+          data: { full_name: name },
+          // After clicking the inbox link, Supabase sends them here —
+          // the form shows "confirmed, sign in".
+          emailRedirectTo: `${origin}/login?confirmed=1`,
+        },
       });
       if (error) {
         if (/already registered|already exists/i.test(error.message)) {

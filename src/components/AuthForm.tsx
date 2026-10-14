@@ -34,6 +34,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     } catch {}
     return "";
   });
+  // Email-confirmation landing (?confirmed=1 from the inbox link).
+  const [confirmed] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get("confirmed");
+      if (q) {
+        window.history.replaceState(null, "", window.location.pathname);
+        return true;
+      }
+    } catch {}
+    return false;
+  });
   const shownErr = err || oauthErr;
 
   // DOM refs as fallback: browser autofill/password-managers can fill inputs
@@ -172,6 +183,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           )}
           {shownErr && <p role="alert" className="rounded-lg border border-[#ff7a7a]/30 bg-[#ff5d5d]/10 px-3 py-2 text-[13px] text-[#ff9a9a]">{shownErr}</p>}
           {notice && <p role="status" className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-[13px] text-white">{notice}</p>}
+          {confirmed && !notice && <p role="status" className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-[13px] text-white">Email confirmed — sign in to continue.</p>}
           <Button type="submit" full size="lg" arrow disabled={busy !== null}>
             {busy === "form" ? "One moment…" : mode === "login" ? "Sign in" : "Create account"}
           </Button>
