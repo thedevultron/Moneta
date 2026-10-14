@@ -3,17 +3,17 @@ import { getStorageProvider, readLocalFile, storageBackend } from "@/lib/storage
 
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: Promise<{ key: string }> };
+type Ctx = { params: Promise<{ key: string[] }> };
 
 /** Auth-gated file download. Local backend streams from ./data/uploads. */
 export async function GET(_req: Request, ctx: Ctx) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { key } = await ctx.params;
-  const decoded = decodeURIComponent(key);
+  const decoded = (Array.isArray(key) ? key.join("/") : key).split("/").map((s) => decodeURIComponent(s)).join("/");
 
-  if (storageBackend() === "firebase") {
-    // Firebase objects are served via signed URLs, not streamed locally.
+  if (storageBackend() === "firebase" || storageBackend() === "supabase") {
+    // Remote objects are served via their URL, not streamed locally.
     try {
       const url = await getStorageProvider().getUrl(decoded);
       return Response.redirect(url, 302);
