@@ -99,7 +99,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
+  // Initial data load on mount (fetch-then-set is what effects are for).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

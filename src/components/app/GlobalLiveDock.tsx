@@ -48,9 +48,9 @@ export function GlobalLiveDock() {
     },
   });
 
-  // Hide while the PIN gate is locked (PinLock covers content, the dock lives outside it).
   useEffect(() => {
     if (!app || !hasPin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPinLocked(false);
       return;
     }
@@ -84,9 +84,11 @@ export function GlobalLiveDock() {
   // the user navigates there while the dock session is running, stop the dock
   // one instead of letting two models talk over each other.
   const liveStatus = live.status;
+  // Route-change response (event-like, not derived state).
   useEffect(() => {
     if (path?.startsWith("/app/ai") && (liveStatus === "live" || liveStatus === "connecting")) {
       live.stop();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -31,16 +31,21 @@ function Home({ data }: { data: AppData }) {
   const hour = today.getHours();
   const greet = hour < 5 ? "Still up" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
+  const transactions = data.transactions;
+  const categories = data.categories;
+  // Manual memo is the optimization here (no React Compiler in this project).
   const s = useMemo(() => {
-    const t = monthTotals(data.transactions, key);
-    const p = monthTotals(data.transactions, prevKey);
-    const cur = cumulativeSeries(data.transactions, key, day);
-    const prev = cumulativeSeries(data.transactions, prevKey, daysInMonth(prevKey));
+    const t = monthTotals(transactions, key);
+    const p = monthTotals(transactions, prevKey);
+    const cur = cumulativeSeries(transactions, key, day);
+    const prev = cumulativeSeries(transactions, prevKey, daysInMonth(prevKey));
     const prevSame = prev[Math.min(day, prev.length) - 1] ?? 0;
     const income = t.income > 0 ? t.income : user.monthlyIncome;
-    const byCat = spendByCategoryName(data.transactions, data.categories, key);
-    return { t, p, cur, prev, prevSame, income, byCat, week: lastNDays(data.transactions, 7) };
-  }, [data.transactions, key, prevKey, day, user.monthlyIncome]);
+    const byCat = spendByCategoryName(transactions, categories, key);
+    return { t, p, cur, prev, prevSame, income, byCat, week: lastNDays(transactions, 7) };
+    // Manual memo is the optimization here (no React Compiler in this project).
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  }, [transactions, categories, key, prevKey, day, user.monthlyIncome]);
 
   const delta = s.prevSame > 0 ? (s.t.expense - s.prevSame) / s.prevSame : 0;
   const left = s.income - s.t.expense;
@@ -50,8 +55,10 @@ function Home({ data }: { data: AppData }) {
   const [aiMode, setAiMode] = useState<"gemini" | "local">("local");
   const [tipIdx, setTipIdx] = useState(0);
 
+  // Mount-only session-cache read (hydration-safe).
   useEffect(() => {
     if (data.transactions.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAiLoading(false);
       return;
     }

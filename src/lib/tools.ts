@@ -1,7 +1,11 @@
 /** Coach function tools — client-safe (also used by the Live voice session). */
+import { CATEGORY_COLORS, GOAL_ICON_KEYS, ICON_KEYS } from "./icons";
 
 const str = (d: string) => ({ type: "STRING", description: d });
 const numP = (d: string) => ({ type: "NUMBER", description: d });
+const iconP = (d: string) => ({ type: "STRING", enum: ICON_KEYS, description: d });
+const goalIconP = (d: string) => ({ type: "STRING", enum: GOAL_ICON_KEYS, description: d });
+const colorP = (d: string) => ({ type: "STRING", description: `${d} Hex color, one of: ${CATEGORY_COLORS.join(", ")}` });
 
 export const TOOLS = [
   {
@@ -70,6 +74,7 @@ export const TOOLS = [
             target: numP("Target amount"),
             saved: numP("Already saved"),
             deadline: str("YYYY-MM-DD, optional"),
+            icon: goalIconP("Goal icon (optional, pick from the list)"),
           },
           required: ["name", "target"],
         },
@@ -94,7 +99,7 @@ export const TOOLS = [
       },
       {
         name: "update_goal",
-        description: "Update a savings goal: rename, change target/saved/deadline.",
+        description: "Update a savings goal: rename, change target/saved/deadline/icon.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -103,6 +108,7 @@ export const TOOLS = [
             target: numP("New target amount (optional)"),
             saved: numP("New saved amount (optional)"),
             deadline: str("New deadline YYYY-MM-DD, or empty to clear (optional)"),
+            icon: goalIconP("New goal icon (optional, pick from the list)"),
           },
           required: ["goal_name"],
         },
@@ -172,7 +178,12 @@ export const TOOLS = [
         description: "Create a new spending or income category.",
         parameters: {
           type: "OBJECT",
-          properties: { name: str("Category name"), kind: { type: "STRING", enum: ["expense", "income"] } },
+          properties: {
+            name: str("Category name"),
+            kind: { type: "STRING", enum: ["expense", "income"] },
+            icon: iconP("Category icon (optional, pick from the list)"),
+            color: colorP("Category colour (optional)"),
+          },
           required: ["name"],
         },
       },
@@ -185,6 +196,8 @@ export const TOOLS = [
             name: str("Current category name"),
             new_name: str("New category name (optional)"),
             kind: { type: "STRING", enum: ["expense", "income"] },
+            icon: iconP("New category icon (optional, pick from the list)"),
+            color: colorP("New category colour (optional)"),
           },
           required: ["name"],
         },
@@ -264,7 +277,7 @@ export const TOOLS = [
       },
       {
         name: "update_profile",
-        description: "Update user display name, monthly income, currency, or AI coach personality.",
+        description: "Update user display name, monthly income, currency, AI coach personality, persona, or thinking level.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -272,9 +285,21 @@ export const TOOLS = [
             monthly_income: { type: "NUMBER", description: "Declared monthly income (>= 0)" },
             currency: { type: "STRING", description: "Currency code, e.g. USD, GBP, EUR" },
             ai_personality: { type: "STRING", enum: ["calm", "hype", "strict", "playful"] },
+            persona: { type: "STRING", enum: ["student", "adult"] },
+            thinking_level: { type: "STRING", enum: ["minimal", "low", "medium", "high"] },
           },
         },
       },
     ],
   },
 ];
+
+/** Live voice (BidiGenerateContent) requires NON_BLOCKING on every declaration.
+ * The REST generateContent API rejects that field, so TOOLS stays clean and
+ * this helper adds it only for the Live WebSocket session. */
+export function liveTools() {
+  return TOOLS.map((t) => ({
+    ...t,
+    functionDeclarations: t.functionDeclarations.map((d) => ({ ...d, behavior: "NON_BLOCKING" })),
+  }));
+}

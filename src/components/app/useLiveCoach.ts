@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { COACH_BASE_PROMPT, AI_PERSONALITIES } from "@/lib/personalities";
-import { TOOLS } from "@/lib/tools";
+import { liveTools } from "@/lib/tools";
 
 export type LiveStatus = "idle" | "connecting" | "live" | "error";
 export type LiveAction = { tool: string; ok: boolean; summary: string; navigate?: string };
@@ -14,10 +14,7 @@ type Ctx = {
   currency: string;
   persona: string;
   aiPersonality: string;
-  thinkingLevel: string;
 };
-
-const THINK_BUDGET: Record<string, "LOW" | "MEDIUM" | "HIGH"> = { minimal: "LOW", low: "LOW", medium: "MEDIUM", high: "HIGH" };
 
 function floatToPCM16(input: Float32Array): Int16Array {
   const out = new Int16Array(input.length);
@@ -87,9 +84,12 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
   const lastInputAt = useRef(0);
   const lastOutputAt = useRef(0);
   const onDataChanged = useRef(opts.onDataChanged);
-  onDataChanged.current = opts.onDataChanged;
   const onNavigate = useRef(opts.onNavigate);
-  onNavigate.current = opts.onNavigate;
+  // Keep callback refs fresh without writing refs during render.
+  useEffect(() => {
+    onDataChanged.current = opts.onDataChanged;
+    onNavigate.current = opts.onNavigate;
+  });
 
   const teardown = useCallback((keepTurns = true) => {
     stoppedRef.current = true;
@@ -157,6 +157,9 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
   }, [status, pushTurn]);
 
   const runToolCalls = useCallback(async (ws: WebSocket, calls: { name: string; args?: Record<string, unknown>; id?: string }[]) => {
+    // Per Google's Live API docs, non-blocking tool results should carry
+    // scheduling:"INTERRUPT" so the model breaks in and reports the real
+    // outcome instead of talking over it.
     const responses: { name: string; id?: string; response: Record<string, unknown> }[] = [];
     for (const c of calls) {
       try {
@@ -165,19 +168,102 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: c.name, args: c.args ?? {} }),
         });
-        const j = (await r.json()) as LiveAction;
-        pendingActions.current.push(j);
-        responses.push({ name: c.name, id: c.id, response: { ok: j.ok, result: j.summary } });
-        if (j.ok) onDataChanged.current?.();
-        if (j.ok && typeof j.navigate === "string" && j.navigate.startsWith("/app")) onNavigate.current?.(j.navigate);
+        // Surface the REAL server error text (401/500/validation) instead of
+        // a generic failure — the model must quote this, never invent one.
+        const j = (await r.json().catch(() => null)) as (LiveAction & { error?: string }) | null;
+        const act: LiveAction = r.ok && j && typeof j.ok === "boolean"
+          ? (j as LiveAction)
+          : { tool: c.name, ok: false, summary: (j as { error?: string } | null)?.error ?? `Tool request failed (HTTP ${r.status})` };
+        pendingActions.current.push(act);
+        responses.push({ name: c.name, id: c.id, response: { ok: act.ok, result: act.summary, scheduling: "INTERRUPT" } });
+        if (act.ok) onDataChanged.current?.();
+        if (act.ok && typeof act.navigate === "string" && act.navigate.startsWith("/app")) onNavigate.current?.(act.navigate);
       } catch {
         const fail = { tool: c.name, ok: false, summary: "Tool failed" } as LiveAction;
         pendingActions.current.push(fail);
-        responses.push({ name: c.name, id: c.id, response: { ok: false, result: "Tool failed" } });
+        responses.push({ name: c.name, id: c.id, response: { ok: false, result: "Tool failed", scheduling: "INTERRUPT" } });
       }
     }
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+    }
+  }, []);
+
+  // Stable callbacks (refs + setState only) so `start` keeps a stable identity.
+  const startMic = useCallback(async (ws: WebSocket) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
+      });
+      if (stoppedRef.current || ws.readyState !== WebSocket.OPEN) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      streamRef.current = stream;
+      // Use the device's native rate and downsample in JS (mobile Safari
+      // ignores the sampleRate constraint, which would garble live audio).
+      const ctx = new AudioContext();
+      try { await ctx.resume(); } catch {}
+      const src = ctx.createMediaStreamSource(stream);
+      const proc = ctx.createScriptProcessor(4096, 1, 1);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      src.connect(analyser);
+      const levelBuf = new Uint8Array(analyser.frequencyBinCount);
+      proc.onaudioprocess = (e) => {
+        if (stoppedRef.current || ws.readyState !== WebSocket.OPEN) return;
+        const ch = downsampleTo16k(e.inputBuffer.getChannelData(0), e.inputBuffer.sampleRate);
+        analyser.getByteTimeDomainData(levelBuf);
+        let peak = 0;
+        for (let i = 0; i < levelBuf.length; i += 4) {
+          const v = Math.abs(levelBuf[i] - 128) / 128;
+          if (v > peak) peak = v;
+        }
+        setMicLevel((p) => p * 0.7 + Math.min(1, peak * 1.6) * 0.3);
+        const pcm = floatToPCM16(ch);
+        ws.send(JSON.stringify({
+          realtimeInput: { audio: { data: b64encodeBytes(new Uint8Array(pcm.buffer)), mimeType: "audio/pcm;rate=16000" } },
+        }));
+      };
+      src.connect(proc);
+      // Route through a muted gain node (not the speakers): keeps the
+      // processor running with zero feedback/echo on phones.
+      const mute = ctx.createGain();
+      mute.gain.value = 0;
+      proc.connect(mute);
+      mute.connect(ctx.destination);
+      audioInRef.current = { ctx, proc, src };
+    } catch {
+      setError("Microphone blocked — allow mic access in the browser, then try again.");
+      setStatus("error");
+      try { ws.close(); } catch {}
+    }
+  }, []);
+
+  const playAudio = useCallback(async (b64: string, mime?: string) => {
+    try {
+      if (!audioOutRef.current) {
+        audioOutRef.current = { ctx: new AudioContext({ sampleRate: 24000 }), nextAt: 0 };
+      }
+      const out = audioOutRef.current;
+      const rate = parseOutRate(mime);
+      const raw = b64ToBytes(b64);
+      const samples = new Int16Array(raw.buffer, raw.byteOffset, Math.floor(raw.byteLength / 2));
+      const buf = out.ctx.createBuffer(1, samples.length, rate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < samples.length; i++) ch[i] = samples[i] / 0x8000;
+      const src = out.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(out.ctx.destination);
+      const at = Math.max(out.ctx.currentTime + 0.02, out.nextAt);
+      src.start(at);
+      out.nextAt = at + buf.duration;
+      setSpeaking(true);
+      src.onended = () => {
+        if (out.ctx.currentTime >= out.nextAt - 0.05 && !accRef.current.model) setSpeaking(false);
+      };
+    } catch {
+      /* drop bad chunk */
     }
   }, []);
 
@@ -217,13 +303,15 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
             model: `models/${tj.model}`,
             generationConfig: {
               responseModalities: ["AUDIO"],
-              thinkingConfig: { thinkingLevel: THINK_BUDGET[cx.thinkingLevel] ?? "MEDIUM" },
+              // Voice needs the lowest latency: LOW thinking, always.
+              // (The chat box keeps using the user's own thinkingLevel.)
+              thinkingConfig: { thinkingLevel: "LOW" },
             },
             systemInstruction: { parts: [{ text: sys }] },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             sessionResumption: {},
-            tools: TOOLS,
+            tools: liveTools(),
           },
         }));
       };
@@ -332,7 +420,7 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
         setError("Live connection failed. Check your connection and API key, then try again.");
         setStatus("error");
       };
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         if (stoppedRef.current) {
           setStatus("idle");
           return;
@@ -348,6 +436,12 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
         setLiveUser("");
         setLiveModel("");
         setStatus((s) => (s === "live" ? "idle" : s));
+        // Unexpected drop (Google-side kill, quota, network): show the real
+        // close code/reason so the next report pinpoints it.
+        if (u || m || acts.length) {
+          const reason = typeof ev.reason === "string" && ev.reason ? `: ${ev.reason}` : "";
+          setError(`Live session dropped (code ${ev.code}${reason}) — tap the pill to start a fresh one.`);
+        }
         teardown(true);
       };
     } catch (e) {
@@ -355,85 +449,7 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
       setError(e instanceof Error ? e.message : "Couldn't start live voice.");
       setStatus("error");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pushTurn, runToolCalls, teardown]);
-
-  async function startMic(ws: WebSocket) {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
-      });
-      if (stoppedRef.current || ws.readyState !== WebSocket.OPEN) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      streamRef.current = stream;
-      // Use the device's native rate and downsample in JS (mobile Safari
-      // ignores the sampleRate constraint, which would garble live audio).
-      const ctx = new AudioContext();
-      try { await ctx.resume(); } catch {}
-      const src = ctx.createMediaStreamSource(stream);
-      const proc = ctx.createScriptProcessor(4096, 1, 1);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      src.connect(analyser);
-      const levelBuf = new Uint8Array(analyser.frequencyBinCount);
-      proc.onaudioprocess = (e) => {
-        if (stoppedRef.current || ws.readyState !== WebSocket.OPEN) return;
-        const ch = downsampleTo16k(e.inputBuffer.getChannelData(0), e.inputBuffer.sampleRate);
-        analyser.getByteTimeDomainData(levelBuf);
-        let peak = 0;
-        for (let i = 0; i < levelBuf.length; i += 4) {
-          const v = Math.abs(levelBuf[i] - 128) / 128;
-          if (v > peak) peak = v;
-        }
-        setMicLevel((p) => p * 0.7 + Math.min(1, peak * 1.6) * 0.3);
-        const pcm = floatToPCM16(ch);
-        ws.send(JSON.stringify({
-          realtimeInput: { audio: { data: b64encodeBytes(new Uint8Array(pcm.buffer)), mimeType: "audio/pcm;rate=16000" } },
-        }));
-      };
-      src.connect(proc);
-      // Route through a muted gain node (not the speakers): keeps the
-      // processor running with zero feedback/echo on phones.
-      const mute = ctx.createGain();
-      mute.gain.value = 0;
-      proc.connect(mute);
-      mute.connect(ctx.destination);
-      audioInRef.current = { ctx, proc, src };
-    } catch {
-      setError("Microphone blocked — allow mic access in the browser, then try again.");
-      setStatus("error");
-      try { ws.close(); } catch {}
-    }
-  }
-
-  async function playAudio(b64: string, mime?: string) {
-    try {
-      if (!audioOutRef.current) {
-        audioOutRef.current = { ctx: new AudioContext({ sampleRate: 24000 }), nextAt: 0 };
-      }
-      const out = audioOutRef.current;
-      const rate = parseOutRate(mime);
-      const raw = b64ToBytes(b64);
-      const samples = new Int16Array(raw.buffer, raw.byteOffset, Math.floor(raw.byteLength / 2));
-      const buf = out.ctx.createBuffer(1, samples.length, rate);
-      const ch = buf.getChannelData(0);
-      for (let i = 0; i < samples.length; i++) ch[i] = samples[i] / 0x8000;
-      const src = out.ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(out.ctx.destination);
-      const at = Math.max(out.ctx.currentTime + 0.02, out.nextAt);
-      src.start(at);
-      out.nextAt = at + buf.duration;
-      setSpeaking(true);
-      src.onended = () => {
-        if (out.ctx.currentTime >= out.nextAt - 0.05 && !accRef.current.model) setSpeaking(false);
-      };
-    } catch {
-      /* drop bad chunk */
-    }
-  }
+  }, [pushTurn, runToolCalls, teardown, startMic, playAudio]);
 
   const stop = useCallback(() => {
     // Ending the session closes the current exchange: flush whatever was

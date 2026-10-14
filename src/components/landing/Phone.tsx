@@ -60,8 +60,10 @@ export function ScreenHome() {
 export function ScreenAdd({ active }: { active: boolean }) {
   const full = "12.50";
   const [n, setN] = useState(0);
+  // Typewriter reset + interval keyed on visibility (animation lifecycle, not derived state).
   useEffect(() => {
     if (!active) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setN(0);
       return;
     }

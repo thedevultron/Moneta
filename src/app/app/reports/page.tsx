@@ -15,7 +15,7 @@ export default function ReportsPage() {
   const { data, fmt, catById, toast } = useApp();
   const [month, setMonth] = useState(currentMonthKey());
   const [trend, setTrend] = useState<TrendKind>("area");
-  const txs = data?.transactions ?? [];
+  const txs = useMemo(() => data?.transactions ?? [], [data?.transactions]);
   const history = useMemo(() => monthlyHistory(txs, 6), [txs]);
   const cats = useMemo(() => spendByCategoryName(txs, data?.categories ?? [], month), [txs, data?.categories, month]);
   const totals = monthTotals(txs, month);

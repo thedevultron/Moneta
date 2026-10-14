@@ -46,18 +46,18 @@ export function Leak() {
   const barW = useTransform(p, [0, 1], ["0%", "100%"]);
   return (
     <section id="story" ref={ref} className="relative h-[340vh]">
-      <div className="sticky top-0 flex h-dvh flex-col justify-center overflow-hidden px-6 sm:px-10">
+      <div className="sticky top-0 flex h-dvh flex-col justify-center overflow-hidden px-6 py-10 sm:px-10">
         <div className="mx-auto w-full max-w-[1100px]">
           <Eyebrow n="01">The leak</Eyebrow>
-          <p className="font-display text-[30px] leading-[1.08] sm:text-[48px] sm:leading-[1.06] lg:text-[80px]">
+          <p className="font-display text-[30px] leading-[1.08] sm:text-[48px] sm:leading-[1.06] lg:text-[80px] [@media(max-height:700px)]:lg:text-[56px] [@media(max-height:700px)]:sm:text-[40px]">
             {words.map((w, i) => (
               <Word key={i} w={w} i={i} n={words.length} p={p} />
             ))}
           </p>
-          <div className="mt-6 flex items-end justify-between gap-6 border-t border-white/10 pt-5 sm:mt-10 sm:pt-6">
+          <div className="mt-6 flex items-end justify-between gap-6 border-t border-white/10 pt-5 sm:mt-10 sm:pt-6 lg:mt-14 [@media(max-height:700px)]:mt-5">
             <div>
               <div className="label mb-2 text-[10px]">Average small spends you never noticed</div>
-              <div className="font-display tabular text-[44px] leading-none sm:text-[72px] lg:text-[88px]">
+              <div className="font-display tabular text-[44px] leading-none sm:text-[72px] lg:text-[88px] [@media(max-height:700px)]:lg:text-[64px] [@media(max-height:700px)]:sm:text-[52px]">
                 <span className="text-ash">$</span>
                 <motion.span>{text}</motion.span>
                 <span className="ml-2 font-mono text-[12px] uppercase tracking-widest text-ash">/ month</span>
@@ -121,7 +121,7 @@ export function Journey() {
                 </motion.div>
               ))}
             </div>
-            <div className="mt-5 flex gap-2">
+            <div className="mt-7 flex gap-2.5 lg:mt-9">
               {STEPS.map((_, i) => (
                 <span key={i} className={`h-[3px] rounded-full transition-all duration-500 ${i === step ? "w-12 bg-white" : "w-6 bg-white/20"}`} />
               ))}
@@ -143,8 +143,10 @@ export function CoachDemo() {
   const [stage, setStage] = useState(0);
   const [run, setRun] = useState(0);
 
+  // Staged demo timeline, restarted every time the section re-enters view.
   useEffect(() => {
     if (!inView) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStage(0);
     const ts = [
       setTimeout(() => setStage(1), 300),

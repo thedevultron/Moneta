@@ -6,11 +6,12 @@ import { Button, EmptyState, Field, Input, PageHeader, Sheet } from "@/component
 import { useApp } from "@/components/app/DataProvider";
 import { Ring } from "@/components/app/Charts";
 import { Icon } from "@/lib/icons";
+import { GOAL_ICON_KEYS } from "@/lib/icons";
 import { getCurrency } from "@/lib/currency";
 import { parseISO, todayISO } from "@/lib/stats";
 import type { Goal } from "@/lib/types";
 
-const GOAL_ICONS = ["piggy-bank", "plane", "laptop", "shield", "home", "car", "gift", "graduation-cap", "smartphone", "heart-pulse"];
+const GOAL_ICONS = GOAL_ICON_KEYS;
 
 export default function GoalsPage() {
   const { data, fmt, create, update, remove, toast, currency } = useApp();

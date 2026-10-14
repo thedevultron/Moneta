@@ -346,18 +346,14 @@ export function BellToggle({ on, onChange, label = "Notifications" }: { on: bool
 export function Shredder({
   shredding, onDone, children, strips = 7, className,
 }: { shredding: boolean; onDone: () => void; children: ReactNode; strips?: number; className?: string }) {
-  const [show, setShow] = useState(false);
+  // `show` is exactly `shredding` — derived during render, timer is the only effect.
   useEffect(() => {
-    if (!shredding) {
-      setShow(false);
-      return;
-    }
-    setShow(true);
+    if (!shredding) return;
     const t = setTimeout(onDone, 700);
     return () => clearTimeout(t);
   }, [shredding, onDone]);
 
-  if (!show) return <div className={className}>{children}</div>;
+  if (!shredding) return <div className={className}>{children}</div>;
   return (
     <div className={cn("relative overflow-hidden", className)}>
       <div className="invisible">{children}</div>

@@ -194,14 +194,17 @@ export function PieChart({
   const total = segments.reduce((a, s) => a + s.value, 0) || 1;
   const r = size / 2 - 6;
   const c = size / 2;
-  let a = -Math.PI / 2;
+  // Pure angle ranges (no render-phase mutation): [start, end] per slice.
+  const fracs = segments.map((s) => (s.value / total) * Math.PI * 2);
+  const pairs = fracs.map((_, i) => {
+    const a0 = -Math.PI / 2 + fracs.slice(0, i).reduce((x, y) => x + y, 0);
+    return [a0, a0 + fracs[i]] as [number, number];
+  });
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Spending breakdown pie">
-      {segments.map((s) => {
+      {segments.map((s, i) => {
         const frac = s.value / total;
-        const a0 = a;
-        a += frac * Math.PI * 2;
-        const a1 = a;
+        const [a0, a1] = pairs[i];
         const large = frac > 0.5 ? 1 : 0;
         const [x0, y0] = polar(c, c, r, a0);
         const [x1, y1] = polar(c, c, r, a1);

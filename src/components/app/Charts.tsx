@@ -76,13 +76,15 @@ export function Donut({ segments, size = 180, thickness = 18, children }: { segm
   const total = segments.reduce((a, s) => a + s.value, 0) || 1;
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
-  let offset = 0;
+  // Pure prefix sums (no render-phase mutation) for each arc's start offset.
+  const lens = segments.map((s) => (s.value / total) * c);
+  const offs = lens.map((_, i) => lens.slice(0, i).reduce((a, b) => a + b, 0));
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={thickness} />
         {segments.map((s, i) => {
-          const len = (s.value / total) * c;
+          const len = lens[i];
           const gap = segments.length > 1 ? 3 : 0;
           const el = (
             <circle
@@ -94,12 +96,11 @@ export function Donut({ segments, size = 180, thickness = 18, children }: { segm
               stroke={s.color}
               strokeWidth={thickness}
               strokeDasharray={`${Math.max(len - gap, 0)} ${c}`}
-              strokeDashoffset={-offset}
+              strokeDashoffset={-offs[i]}
               strokeLinecap="butt"
               style={{ transition: "stroke-dasharray .8s ease" }}
             />
           );
-          offset += len;
           return el;
         })}
       </svg>

@@ -47,8 +47,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showFab = !["/app/ai", "/app/more", "/app/settings", "/app/categories"].includes(path);
   const [collapsed, setCollapsed] = useState(false);
 
+  // Mount-only storage read (hydration-safe: collapsed UI must match SSR first).
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollapsed(localStorage.getItem("moneta_sidebar_collapsed") === "1");
     } catch {}
   }, []);

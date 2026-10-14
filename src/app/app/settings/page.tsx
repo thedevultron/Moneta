@@ -28,7 +28,9 @@ export default function SettingsPage() {
   const [keyMsg, setKeyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [keyBusy, setKeyBusy] = useState(false);
 
+  // Sync local controls when the loaded profile changes (not render-derivable).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNotifyOn(isNotifyEnabled(user.id));
     setPerm(notifyPermission());
     setAiP(user.aiPersonality || "calm");

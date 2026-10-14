@@ -69,9 +69,11 @@ export default function AiPage() {
   const liveActive = live.status === "live" || live.status === "connecting";
   const liveState = live.status === "live" ? (live.speaking ? "speaking" : live.processing ? "thinking" : "listening") : live.status === "connecting" ? "thinking" : "idle";
 
+  // Mount-only browser read (hydration-safe: server and first client render agree).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storeKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setMsgs(JSON.parse(raw) as Msg[]);
     } catch {}
     setHydrated(true);
@@ -119,6 +121,8 @@ export default function AiPage() {
     if (p) {
       sentPrompt.current = true;
       window.history.replaceState(null, "", "/app/ai");
+      // One-shot send from the URL (?prompt=...); not render-derived state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void send(p);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

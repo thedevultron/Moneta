@@ -15,12 +15,14 @@ export default function TransactionsPage() {
   const [type, setType] = useState<"all" | "expense" | "income">("all");
   const [cat, setCat] = useState<number | "none" | null>(null);
 
+  // One-shot read of the deep-link query (?cat=...) on mount.
   useEffect(() => {
     const c = new URLSearchParams(window.location.search).get("cat");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (c !== null) setCat(c === "" ? "none" : Number(c));
   }, []);
 
-  const txs = data?.transactions ?? [];
+  const txs = useMemo(() => data?.transactions ?? [], [data?.transactions]);
   const totals = useMemo(() => monthTotals(txs, month), [txs, month]);
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();

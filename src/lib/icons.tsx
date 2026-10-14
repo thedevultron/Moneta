@@ -37,6 +37,20 @@ export const ICONS: Record<string, LucideIcon> = {
 
 export const ICON_KEYS = Object.keys(ICONS);
 
+/** Icon choices offered on the Goals page (subset of ICON_KEYS). AI tools accept only these. */
+export const GOAL_ICON_KEYS = [
+  "piggy-bank",
+  "plane",
+  "laptop",
+  "shield",
+  "home",
+  "car",
+  "gift",
+  "graduation-cap",
+  "smartphone",
+  "heart-pulse",
+];
+
 export function Icon({ name, size = 18, className, strokeWidth = 1.6 }: { name: string; size?: number; className?: string; strokeWidth?: number }) {
   const C = ICONS[name] ?? Wallet;
   return <C size={size} className={className} strokeWidth={strokeWidth} />;

@@ -84,9 +84,16 @@ export async function runAgent(user: SessionUser, messages: AgentMsg[]): Promise
     // Key present but rejected (or network down): stay useful via the local agent.
     const fb = await localAgent(user, clean[clean.length - 1].text, actions);
     const msg = e instanceof Error ? e.message : "AI error";
-    const hint = msg.includes("400") || msg.includes("403") || msg.includes("API key")
-      ? " (Your GEMINI_API_KEY was rejected — get a valid one from https://aistudio.google.com/apikey.)"
-      : " (AI service unreachable — showing local analysis instead.)";
+    let hint: string;
+    if (msg.includes("429") || /quota|rate.?limit/i.test(msg)) {
+      hint = " (Google is rate-limiting AI requests right now — wait a minute and try again.)";
+    } else if (/timeout|timed out|TimeoutError/i.test(msg)) {
+      hint = " (Google took too long to answer — your data is fine, try again.)";
+    } else if (msg.includes("400") || msg.includes("403") || msg.includes("API key")) {
+      hint = " (Your GEMINI_API_KEY was rejected — get a valid one from https://aistudio.google.com/apikey.)";
+    } else {
+      hint = " (AI service unreachable — showing local analysis instead.)";
+    }
     return { ...fb, notice: `${fb.notice ?? ""}${hint}`.trim() };
   }
 }

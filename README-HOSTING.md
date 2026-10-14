@@ -57,6 +57,16 @@ The repo is Netlify-ready (`netlify.toml` + `@netlify/plugin-nextjs`, Node pinne
 
 > Local storage on Netlify is ephemeral: JSON files and uploads reset on redeploy/sleep. Fine for a demo; for permanent data use the Supabase Postgres backend (coming next), which works unchanged on Netlify — just set its env vars instead.
 
+## 2c. Supabase (auth + storage)
+
+Wiring (already done in this repo's `.env`; values never committed):
+
+- Supabase project ref from the earlier session, publishable (anon) key, `moneta-uploads` bucket.
+- Local `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET=moneta-uploads`, `AUTH_BACKEND=supabase`, `STORAGE_BACKEND=supabase`.
+- One dashboard step you must do once: Supabase Dashboard → Storage → New bucket → name `moneta-uploads`, **Public ON** (the anon key can't create buckets — RLS blocks it, verified). Until the bucket exists, uploads fail with a clear `Supabase storage upload failed` message; everything else works.
+- What "auth" means here: `SupabaseAuthProvider` extends the local session provider — sign-in sessions keep working exactly as before, plus best-effort Supabase linkage (sign-out propagates, `getUser` lookup with local fallback). No login migration needed.
+- Netlify production: Site settings → Environment variables — set the same five vars (see 2b list + `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET`, `AUTH_BACKEND=supabase`, `STORAGE_BACKEND=supabase`). Never commit values.
+
 Pre-deploy checklist (all true right now):
 
 - `npm run build` passes with zero errors (SSR build — no `output: "export"`, so API routes work in production).
@@ -86,7 +96,7 @@ never committed). Fallback: put `GEMINI_API_KEY=...` in `.env` and restart.
 
 Models wired:
 - Text/insights: `GEMINI_LITE_MODEL=gemini-3.5-flash-lite`
-- Agentic chat (read + write tools): `GEMINI_AGENT_MODEL=gemini-3.5-flash-lite`
+- Agentic chat (read + write tools): `GEMINI_AGENT_MODEL=gemini-3.5-flash`
 - Voice transcription fallback: `GEMINI_TRANSCRIBE_MODEL=gemini-3.1-flash-lite`
 - True Live voice: `GEMINI_LIVE_MODEL=gemini-3.8-live-extended-thinking`
 

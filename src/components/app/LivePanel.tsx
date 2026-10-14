@@ -14,8 +14,10 @@ export function LivePanel({ compact, session }: { compact?: boolean; session?: R
   const router = useRouter();
   const [micBlocked, setMicBlocked] = useState<boolean | null>(null);
   const [host, setHost] = useState("");
+  // Mount-only capability probe (navigator APIs don't exist during SSR).
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHost(window.location.host || "");
       const secure = window.isSecureContext;
       const hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -47,9 +49,9 @@ export function LivePanel({ compact, session }: { compact?: boolean; session?: R
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[14px] font-light text-silver">
           <li>On your phone open <span className="font-mono">chrome://flags</span></li>
           <li>Search <span className="font-mono">Insecure origins treated as secure</span> → Enabled</li>
-          <li>Add <span className="font-mono">http://{host || "your-PC-address:3000"}</span> (this server's address) and relaunch Chrome</li>
+          <li>Add <span className="font-mono">http://{host || "your-PC-address:3000"}</span> (this server&apos;s address) and relaunch Chrome</li>
         </ol>
-        <p className="mt-3 text-[13px] font-light text-fog">iPhone Safari can't do this — use the phone's Chrome, or ask for the HTTPS link.</p>
+        <p className="mt-3 text-[13px] font-light text-fog">iPhone Safari can&apos;t do this — use the phone&apos;s Chrome, or ask for the HTTPS link.</p>
       </div>
     );
   }
