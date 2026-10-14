@@ -31,3 +31,7 @@ data/uploads/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Local agent tooling (skills live on each machine, not in the repo)
+.agents/
+skills-lock.json
