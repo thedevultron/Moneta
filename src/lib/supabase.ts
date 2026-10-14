@@ -12,8 +12,11 @@ export function getSupabaseUrl(): string {
 }
 
 export function getSupabaseAnonKey(): string {
+  // Accept both the legacy ANON_KEY name and the newer PUBLISHABLE_KEY
+  // name from Supabase docs snippets — same value, either var works.
   return (
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
     ""
   ).trim();
