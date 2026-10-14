@@ -9,7 +9,9 @@ import {
 } from "@/db/jsondb";
 
 export const SESSION_COOKIE = "moneta_session";
-const SESSION_DAYS = 30;
+// Stay signed in until the user signs out (effectively a year; the row is
+// deleted on explicit sign-out, and Firestore persists it across deploys).
+const SESSION_DAYS = 365;
 
 export type SessionUser = DbUser;
 
