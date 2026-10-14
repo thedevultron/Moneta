@@ -41,6 +41,8 @@ firebase apphosting:secrets:grantAccess --backend <backend-id>
 
 then `firebase deploy` (config: `firebase.json`, `apphosting.yaml`, locked-down `firestore.rules`).
 
+> Netlify prod status: site `moneta-live` (`https://moneta-live.netlify.app`) auto-deploys from GitHub `main`. Prod env uses `DATA_DIR=/tmp/moneta-data` (function filesystem is read-only) + Supabase auth/storage vars; data is ephemeral per deploy.
+
 ## 2b. Deploy: Netlify (+ local storage)
 
 The repo is Netlify-ready (`netlify.toml` + `@netlify/plugin-nextjs`, Node pinned via `NODE_VERSION`/`engines`).
