@@ -120,31 +120,28 @@ export class FirebaseAuthProvider implements AuthProvider {
 
 export class SupabaseAuthProvider extends LocalAuthProvider {
   async destroySession(): Promise<void> {
+    // Sign out of the Supabase cookie session too (SSR client), then local.
     try {
-      const { getSupabase } = await import("@/lib/supabase");
-      const supabase = getSupabase();
-      if (supabase) {
-        await supabase.auth.signOut().catch(() => {});
-      }
+      const { cookies } = await import("next/headers");
+      const { createClient } = await import("@/utils/supabase/server");
+      const supabase = createClient(await cookies());
+      await supabase.auth.signOut().catch(() => {});
     } catch {}
     await super.destroySession();
   }
 
   async getCurrentUser(): Promise<SessionUser | null> {
-    const jar = await cookies();
-    const token = jar.get(SESSION_COOKIE)?.value;
-    if (!token) return null;
-
+    // Prefer a verified Supabase session; fall back to the local cookie so
+    // legacy (pre-Supabase) logins keep working unchanged.
     try {
-      const { getSupabaseAdmin, getSupabase } = await import("@/lib/supabase");
-      const supabase = getSupabaseAdmin() || getSupabase();
-      if (supabase) {
-        const { data: { user } } = await supabase.auth.getUser(token).catch(() => ({ data: { user: null } }));
-        if (user?.email) {
-          const { findUserByEmail } = await import("@/db/jsondb");
-          const dbUser = await findUserByEmail(user.email).catch(() => null);
-          if (dbUser) return dbUser;
-        }
+      const { cookies } = await import("next/headers");
+      const { createClient } = await import("@/utils/supabase/server");
+      const supabase = createClient(await cookies());
+      const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+      if (user?.email) {
+        const { findUserByEmail } = await import("@/db/jsondb");
+        const dbUser = await findUserByEmail(user.email).catch(() => null);
+        if (dbUser) return dbUser;
       }
     } catch {}
 

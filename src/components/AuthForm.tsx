@@ -18,8 +18,23 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [currency, setCurrency] = useState("USD");
   const [sample, setSample] = useState(false);
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState<"form" | "demo" | null>(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState<"form" | "demo" | "google" | null>(null);
   const [demoPersona, setDemoPersona] = useState<"student" | "adult">("adult");
+
+  // OAuth callback failures land here as ?error= — surface once, then clean up.
+  // (Lazy initializer, not an effect, so no set-state-in-effect lint hit.)
+  const [oauthErr] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get("error");
+      if (q) {
+        window.history.replaceState(null, "", window.location.pathname);
+        return q;
+      }
+    } catch {}
+    return "";
+  });
+  const shownErr = err || oauthErr;
 
   // DOM refs as fallback: browser autofill/password-managers can fill inputs
   // without firing React change events, leaving state empty.
@@ -45,12 +60,36 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         body: JSON.stringify(mode === "signup" ? { name: payloadName, email: payloadEmail, password: payloadPass, persona, currency, sample } : { email: payloadEmail, password: payloadPass }),
         signal: AbortSignal.timeout(25000),
       });
-      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      const j = (await res.json().catch(() => ({}))) as { error?: string; checkEmail?: boolean };
       if (!res.ok) throw new Error(j.error || "Something went wrong");
+      if (j.checkEmail) {
+        setNotice("Account created — check your inbox for the confirmation link, then sign in.");
+        setBusy(null);
+        return;
+      }
       router.replace(await nextRoute());
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Something went wrong");
+      setBusy(null);
+    }
+  }
+
+  async function google() {
+    setErr("");
+    setNotice("");
+    setBusy("google");
+    try {
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw new Error(error.message);
+      // Redirects to Google — busy stays until navigation.
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Google sign-in failed");
       setBusy(null);
     }
   }
@@ -131,9 +170,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               </label>
             </>
           )}
-          {err && <p role="alert" className="rounded-lg border border-[#ff7a7a]/30 bg-[#ff5d5d]/10 px-3 py-2 text-[13px] text-[#ff9a9a]">{err}</p>}
+          {shownErr && <p role="alert" className="rounded-lg border border-[#ff7a7a]/30 bg-[#ff5d5d]/10 px-3 py-2 text-[13px] text-[#ff9a9a]">{shownErr}</p>}
+          {notice && <p role="status" className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-[13px] text-white">{notice}</p>}
           <Button type="submit" full size="lg" arrow disabled={busy !== null}>
             {busy === "form" ? "One moment…" : mode === "login" ? "Sign in" : "Create account"}
+          </Button>
+          <div className="flex items-center gap-3 text-[12px] text-fog">
+            <span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" />
+          </div>
+          <Button type="button" variant="ghost" full onClick={google} disabled={busy !== null}>
+            {busy === "google" ? "Opening Google…" : "Continue with Google"}
           </Button>
           <p className="text-center text-[14px] font-light text-ash">
             {mode === "login" ? <>New here? <Link href="/signup" className="text-white underline underline-offset-4">Create an account</Link></> : <>Already have an account? <Link href="/login" className="text-white underline underline-offset-4">Sign in</Link></>}

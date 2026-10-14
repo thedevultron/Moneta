@@ -66,7 +66,8 @@ Wiring (already done in this repo's `.env`; values never committed):
 - Supabase project ref from the earlier session, publishable (anon) key, `moneta-uploads` bucket.
 - Local `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET=moneta-uploads`, `AUTH_BACKEND=supabase`, `STORAGE_BACKEND=supabase`.
 - One dashboard step you must do once: Supabase Dashboard → Storage → New bucket → name `moneta-uploads`, **Public ON** (the anon key can't create buckets — RLS blocks it, verified). Until the bucket exists, uploads fail with a clear `Supabase storage upload failed` message; everything else works.
-- What "auth" means here: `SupabaseAuthProvider` extends the local session provider — sign-in sessions keep working exactly as before, plus best-effort Supabase linkage (sign-out propagates, `getUser` lookup with local fallback). No login migration needed.
+- What "auth" means here: identities live in Supabase Auth (email/password + Google OAuth), bridged to local user rows (`ensureLocalUser`) so all money data, tools, and APIs keep working unchanged. Legacy local logins keep working as fallback. Google needs its provider enabled in Dashboard → Auth plus redirect URLs (see below).
+- Supabase Auth dashboard setup (once): Auth → Providers → enable **Email** and **Google** (Google needs a Cloud OAuth client ID/secret); Auth → URL Configuration → Site URL `https://moneta-live.netlify.app`, Redirect URLs add `https://moneta-live.netlify.app/auth/callback` and `http://localhost:3006/auth/callback`. OAuth flow: login/signup → Continue with Google → `/auth/callback` exchanges the code, bridges the user, lands in `/app`.
 - Netlify production: Site settings → Environment variables — set the same five vars (see 2b list + `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET`, `AUTH_BACKEND=supabase`, `STORAGE_BACKEND=supabase`). Never commit values.
 
 Pre-deploy checklist (all true right now):
