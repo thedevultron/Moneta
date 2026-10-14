@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { ArrowLeft, Eye, EyeOff, Sparkles } from "lucide-react";
 import { Button, Field, Input, Segmented, Select } from "@/components/ui";
 import { Logo } from "@/components/app/Logo";
@@ -23,28 +23,31 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [demoPersona, setDemoPersona] = useState<"student" | "adult">("adult");
 
   // OAuth callback failures land here as ?error= — surface once, then clean up.
-  // (Lazy initializer, not an effect, so no set-state-in-effect lint hit.)
-  const [oauthErr] = useState(() => {
+  // Mount-time read (repo convention): server prerenders without window, so
+  // this must run after mount — otherwise server/client HTML differs (#418).
+  const [oauthErr, setOauthErr] = useState("");
+  useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search).get("error");
       if (q) {
         window.history.replaceState(null, "", window.location.pathname);
-        return q;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time query read, see above
+        setOauthErr(q);
       }
     } catch {}
-    return "";
-  });
+  }, []);
   // Email-confirmation landing (?confirmed=1 from the inbox link).
-  const [confirmed] = useState(() => {
+  const [confirmed, setConfirmed] = useState(false);
+  useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search).get("confirmed");
       if (q) {
         window.history.replaceState(null, "", window.location.pathname);
-        return true;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time query read, see above
+        setConfirmed(true);
       }
     } catch {}
-    return false;
-  });
+  }, []);
   const shownErr = err || oauthErr;
 
   // DOM refs as fallback: browser autofill/password-managers can fill inputs

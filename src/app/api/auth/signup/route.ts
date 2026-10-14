@@ -43,6 +43,10 @@ export async function POST(req: Request) {
         if (/already registered|already exists/i.test(error.message)) {
           return Response.json({ error: "An account with this email already exists" }, { status: 409 });
         }
+        // Supabase SMTP throttle (429): say so plainly instead of a masked 500.
+        if ((error as { status?: number }).status === 429 || /rate limit/i.test(error.message)) {
+          return Response.json({ error: "Email limit reached — wait a few minutes and try again." }, { status: 429 });
+        }
         throw new Error(error.message);
       }
       if (data.session?.user?.email) {
