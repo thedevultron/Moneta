@@ -3,6 +3,7 @@ import { createSession, createUser, findUserByEmail, hashPassword } from "@/lib/
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { ensureLocalUser } from "@/lib/supabase-auth";
 import { createClient } from "@/utils/supabase/server";
+import { mapSupabaseAuthError } from "@/lib/supabase-errors";
 import { getCurrency } from "@/lib/currency";
 import { DEFAULT_INCOME_USD, seedCategories, seedSample } from "@/lib/seed";
 import { friendlyDbError } from "@/lib/route-errors";
@@ -40,14 +41,8 @@ export async function POST(req: Request) {
         },
       });
       if (error) {
-        if (/already registered|already exists/i.test(error.message)) {
-          return Response.json({ error: "An account with this email already exists" }, { status: 409 });
-        }
-        // Supabase SMTP throttle (429): say so plainly instead of a masked 500.
-        if ((error as { status?: number }).status === 429 || /rate limit/i.test(error.message)) {
-          return Response.json({ error: "Email limit reached — wait a few minutes and try again." }, { status: 429 });
-        }
-        throw new Error(error.message);
+        const mapped = mapSupabaseAuthError(error as { status?: number; code?: string; message: string });
+        return Response.json({ error: mapped.error }, { status: mapped.status });
       }
       if (data.session?.user?.email) {
         // Instant session (email confirmation off): bridge + sign in now.

@@ -157,9 +157,11 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
   }, [status, pushTurn]);
 
   const runToolCalls = useCallback(async (ws: WebSocket, calls: { name: string; args?: Record<string, unknown>; id?: string }[]) => {
-    // Per Google's Live API docs, non-blocking tool results should carry
-    // scheduling:"INTERRUPT" so the model breaks in and reports the real
-    // outcome instead of talking over it.
+    // NOTE: gemini-3.8-live-extended-thinking supports async (NON_BLOCKING)
+    // tools only; per Google's capabilities table, blocking mode AND function
+    // scheduling are NOT supported on this model — so responses carry no
+    // scheduling field. (A wrong/unsupported value risks the response being
+    // rejected when calls do arrive.)
     const responses: { name: string; id?: string; response: Record<string, unknown> }[] = [];
     for (const c of calls) {
       try {
@@ -175,13 +177,13 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
           ? (j as LiveAction)
           : { tool: c.name, ok: false, summary: (j as { error?: string } | null)?.error ?? `Tool request failed (HTTP ${r.status})` };
         pendingActions.current.push(act);
-        responses.push({ name: c.name, id: c.id, response: { ok: act.ok, result: act.summary, scheduling: "INTERRUPT" } });
+        responses.push({ name: c.name, id: c.id, response: { ok: act.ok, result: act.summary } });
         if (act.ok) onDataChanged.current?.();
         if (act.ok && typeof act.navigate === "string" && act.navigate.startsWith("/app")) onNavigate.current?.(act.navigate);
       } catch {
         const fail = { tool: c.name, ok: false, summary: "Tool failed" } as LiveAction;
         pendingActions.current.push(fail);
-        responses.push({ name: c.name, id: c.id, response: { ok: false, result: "Tool failed", scheduling: "INTERRUPT" } });
+        responses.push({ name: c.name, id: c.id, response: { ok: false, result: "Tool failed" } });
       }
     }
     if (ws.readyState === WebSocket.OPEN) {
@@ -191,6 +193,21 @@ export function useLiveCoach(opts: { onDataChanged?: () => void; onNavigate?: (h
 
   // Stable callbacks (refs + setState only) so `start` keeps a stable identity.
   const startMic = useCallback(async (ws: WebSocket) => {
+    // Browsers gate getUserMedia behind secure contexts: plain-http LAN URLs
+    // (e.g. http://192.168.x.x on a phone) NEVER show a mic prompt — the call
+    // just fails. Detect that up front so the error names the real cause.
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setError("Voice needs HTTPS — your connection isn't secure, so the browser won't even ask for the mic. Open the deployed https site instead, or localhost on this PC.");
+      setStatus("error");
+      try { ws.close(); } catch {}
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setError("This browser can't do live voice (no microphone API). Try Chrome or Safari, ideally the deployed https site.");
+      setStatus("error");
+      try { ws.close(); } catch {}
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },

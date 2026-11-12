@@ -20,14 +20,33 @@ export async function POST(req: Request) {
       const supabase = createClient(await cookies());
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (!error && data.user?.email) {
-        const user = await ensureLocalUser(
-          data.user.email,
-          String(data.user.user_metadata?.full_name ?? ""),
-        );
-        await createSession(user.id);
-        return Response.json({ ok: true });
+        try {
+          const user = await ensureLocalUser(
+            data.user.email,
+            String(data.user.user_metadata?.full_name ?? ""),
+          );
+          await createSession(user.id);
+          return Response.json({ ok: true });
+        } catch (e) {
+          // Supabase accepted the credentials but local bridging failed
+          // (storage down, etc.) — report that, don't pretend the password
+          // was wrong by falling through to the legacy check.
+          return Response.json(
+            { error: e instanceof Error ? e.message : "Sign-in bridging failed" },
+            { status: 500 },
+          );
+        }
       }
-      // Wrong password / unconfirmed email / unknown identity → legacy path below.
+      // Correct password but inbox link not clicked yet: say so directly
+      // instead of the misleading "incorrect password" below.
+      const code = String((error as { code?: string } | undefined)?.code ?? "");
+      if (/email_not_confirmed/i.test(code + " " + (error?.message ?? ""))) {
+        return Response.json(
+          { error: "Email not confirmed yet — click the link in your inbox, then sign in." },
+          { status: 403 },
+        );
+      }
+      // Wrong password / unknown identity → legacy path below.
     } catch {
       // Supabase unreachable → legacy path below.
     }
