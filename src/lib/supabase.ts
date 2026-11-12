@@ -3,30 +3,33 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 let client: SupabaseClient | null = null;
 let adminClient: SupabaseClient | null = null;
 
+/**
+ * Read an env var and strip surrounding quotes. `.env` files are commonly
+ * pasted as KEY="value"; Next's loader removes the quotes, but values set
+ * through other dashboards/scripts sometimes keep them, and a quoted URL
+ * makes `new URL()` throw inside middleware (Netlify: "Edge function crashed").
+ */
+function env(name: string): string {
+  const raw = process.env[name] ?? "";
+  return raw.trim().replace(/^["']|["']$/g, "").trim();
+}
+
 export function getSupabaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    ""
-  ).trim();
+  return env("NEXT_PUBLIC_SUPABASE_URL") || env("SUPABASE_URL");
 }
 
 export function getSupabaseAnonKey(): string {
   // Accept both the legacy ANON_KEY name and the newer PUBLISHABLE_KEY
   // name from Supabase docs snippets — same value, either var works.
   return (
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    ""
-  ).trim();
+    env("NEXT_PUBLIC_SUPABASE_ANON_KEY") ||
+    env("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ||
+    env("SUPABASE_ANON_KEY")
+  );
 }
 
 export function getSupabaseServiceRoleKey(): string {
-  return (
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    ""
-  ).trim();
+  return env("SUPABASE_SERVICE_ROLE_KEY");
 }
 
 export function isSupabaseConfigured(): boolean {

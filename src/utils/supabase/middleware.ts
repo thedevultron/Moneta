@@ -8,25 +8,32 @@ import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase";
  * pass straight through untouched.
  */
 export const updateSession = async (request: NextRequest) => {
-  let supabaseResponse = NextResponse.next({ request });
+  try {
+    let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
+    const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
+    });
 
-  // Refreshes the session when expired; no-op without Supabase cookies.
-  await supabase.auth.getUser().catch(() => null);
+    // Refreshes the session when expired; no-op without Supabase cookies.
+    await supabase.auth.getUser().catch(() => null);
 
-  return supabaseResponse;
+    return supabaseResponse;
+  } catch {
+    // Session refresh must never take the whole site down. This middleware
+    // runs as a Netlify Edge Function; an uncaught throw here surfaces as
+    // "Edge function crashed" even though the pages themselves are fine.
+    return NextResponse.next({ request });
+  }
 };
